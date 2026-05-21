@@ -1,0 +1,25 @@
+
+generator client {
+  provider = "prisma-client-js"
+
+}
+
+datasource db {
+  provider = "postgresql"
+}
+model Doctor {
+  id             String   @id @default(cuid())
+  name           String
+  specialization String
+  email          String   @unique
+  phone          String?
+  experience     Int
+  avatar         String?  // S3 URL
+  available      Boolean  @default(true)
+
+  workingDays    String[]  // ["Monday", "Tuesday", "Wednesday"]
+  workingHours   Json      // { start: "09:00", end: "17:00" }
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model Patient {
+  id                        String    @id @default(cuid())
+
+  // Basic Info
+  fullName                  String
+  email                     String @unique
+  phone                     String
+  birthDate                 DateTime
+  gender                    Gender
+  address                   String
+  occupation                String?
+
+  // Emergency Contact
+  emergencyContactName      String
+  emergencyContactNumber    String
+
+  // Medical Info
+  primaryPhysician          String
+  insuranceProvider         String?
+  insurancePolicyNumber     String?
+  allergies                 String?
+  currentMedication         String?
+  familyMedicalHistory      String?
+  pastMedicalHistory        String?
+
+  // Identification
+  identificationType        String
+  identificationNumber      String
+  identificationDocument    String?
+
+  // Consent
+  privacyConsent            Boolean
+
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
