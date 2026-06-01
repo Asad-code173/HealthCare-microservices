@@ -1,0 +1,55 @@
+# helm/values.yaml
+global:
+  registry: ""
+  imageTag: "latest"
+  namespace: healthcare
+
+services:
+  frontend:
+    port: 3000
+    replicas: 1
+    image: eks-healthcare-frontend
+
+  gateway:
+    port: 8080
+    replicas: 1
+    image: eks-healthcare-gateway
+
+  auth-service:
+    port: 8001
+    replicas: 1
+    image: eks-healthcare-auth-service
+
+  patient-service:
+    port: 8003
+    replicas: 1
+    image: eks-healthcare-patient-service
+
+  doctor-service:
+    port: 8002
+    replicas: 1
+    image: eks-healthcare-doctor-service
+
+  appointment-service:
+    port: 8004
+    replicas: 1
+    image: eks-healthcare-appointment-service
+
+ingress:
+  enabled: true
+  className: alb
+  host: ""
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 4
+  cpuUtilization: 70

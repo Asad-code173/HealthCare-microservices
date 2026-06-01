@@ -30,7 +30,7 @@ variable "availability_zones" {
   default = []
 }
 
-# EKS 
+# EKS CLuster
 variable "cluster_name" {
   description = "EKS cluster name."
   type        = string

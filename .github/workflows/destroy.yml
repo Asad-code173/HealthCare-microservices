@@ -27,7 +27,7 @@ env:
   TF_IN_AUTOMATION: true
 
 concurrency:
-  group: ecs-commerce-demo-destroy
+  group: eks-healthcare-demo
   cancel-in-progress: false
 
 jobs:
@@ -108,7 +108,7 @@ jobs:
         run: terraform init -input=false -backend-config=backend.hcl
         working-directory: infra/terraform
 
-      - name: Destroy the ECS demo stack
+      - name: Destroy the EKS demo stack
         run: |
           terraform destroy -auto-approve \
             -var "aws_region=${AWS_REGION}" \
