@@ -9,6 +9,8 @@ on:
       - 'front-end/**'
       - 'services/**'
       - 'infra/**'
+      - 'helm/**'
+      - 'argocd/**'
   workflow_dispatch:
     inputs:
       image_tag:
@@ -17,13 +19,13 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
   PROJECT_NAME: ${{ vars.PROJECT_NAME || 'eks-healthcare' }}
-  CLUSTER_NAME: ${{ vars.CLUSTER_NAME || 'healthcare-eks' }} 
+  CLUSTER_NAME: ${{ vars.CLUSTER_NAME || 'healthcare-eks' }}
   TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
   TF_STATE_KEY: ${{ vars.TF_STATE_KEY || 'production/terraform.tfstate' }}
   AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
@@ -182,23 +184,45 @@ jobs:
             --region "${AWS_REGION}" \
             --name "${CLUSTER_NAME}"
 
-      - name: Update EKS deployments with new image tag
-        shell: bash
+      - name: Install ArgoCD
+        run: |
+          kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+          kubectl wait --for=condition=available deployment/argocd-server \
+            -n argocd --timeout=300s
+
+      - name: Install Prometheus and Grafana
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+            --namespace monitoring \
+            --create-namespace \
+            --wait \
+            --timeout 300s
+
+      - name: Apply ArgoCD configuration
+        run: |
+          kubectl apply -f argocd/install/argocd-install.yaml
+          kubectl apply -f argocd/apps/app-of-apps.yaml
+
+      - name: Update Helm values with new image tag
         env:
           IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
           ACCOUNT_ID: ${{ steps.aws.outputs.account_id }}
         run: |
-          set -euo pipefail
+          sed -i "s|imageTag:.*|imageTag: \"${IMAGE_TAG}\"|" helm/values.yaml
+          sed -i "s|registry:.*|registry: \"${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com\"|" helm/values.yaml
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add helm/values.yaml
+          git commit -m "ci: update image tag to ${IMAGE_TAG}" || true
+          git push || true
 
-          registry="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
-          services=(frontend gateway auth-service doctor-service patient-service appointment-service)
-
-          for name in "${services[@]}"; do
-            image_uri="${registry}/${PROJECT_NAME}-${name}:${IMAGE_TAG}"
-            echo "Updating deployment/${name}"
-            kubectl set image deployment/${name} ${name}=${image_uri} -n healthcare
-            kubectl rollout status deployment/${name} -n healthcare --timeout=120s
-          done
+      - name: Wait for ArgoCD to sync
+        run: |
+          kubectl wait --for=condition=healthy application/healthcare \
+            -n argocd --timeout=300s || true
 
       - name: Summarize deployment
         shell: bash
@@ -207,6 +231,6 @@ jobs:
             echo "## Deployment complete"
             echo
             echo "- Image tag: ${{ steps.meta.outputs.image_tag }}"
-            echo "- Cluster: ${PROJECT_NAME}"
+            echo "- Cluster: ${CLUSTER_NAME}"
             echo "- Region: ${AWS_REGION}"
           } >> "$GITHUB_STEP_SUMMARY"
