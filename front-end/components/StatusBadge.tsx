@@ -7,13 +7,13 @@ export const StatusBadge = ({ status }: { status: Status }) => {
   return (
     <div
       className={clsx("status-badge", {
-        "bg-green-600": status === "scheduled",
+        "bg-green-600": status === "scheduled" || status === "confirmed",
         "bg-blue-600": status === "pending",
         "bg-red-600": status === "cancelled",
       })}
     >
       <Image
-        src={StatusIcon[status]}
+        src={StatusIcon[status as keyof typeof StatusIcon] || "/assets/icons/pending.svg"}
         alt="doctor"
         width={24}
         height={24}

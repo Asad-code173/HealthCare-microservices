@@ -1,42 +1,34 @@
-
-
 generator client {
   provider = "prisma-client-js"
-
 }
 
 datasource db {
   provider = "postgresql"
+
 }
 
-
 model Appointment {
-  id                  String            @id @default(cuid())
+  id                 String            @id @default(cuid())
 
-  // Cross-service references
-  userId              String
-  patientId           String
-  doctorId            String
+  patientName        String
+  doctorName         String
 
-  // Appointment Details
-  schedule            DateTime
-  reason              String
-  note                String?
+  schedule           DateTime
+  reason             String
 
-  status              AppointmentStatus @default(PENDING)
-  cancellationReason  String?
+  status             AppointmentStatus @default(PENDING)
+  cancellationReason String?
 
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
-  @@index([patientId])
-  @@index([doctorId])
   @@index([schedule])
   @@index([status])
 }
 
 enum AppointmentStatus {
   PENDING
-  SCHEDULED
+  CONFIRMED
+  COMPLETED
   CANCELLED
 }

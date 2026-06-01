@@ -2,20 +2,18 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-
+import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm, Control } from "react-hook-form";
-
 import { Form } from "@/components/ui/form";
 import { UserFormValidation } from "@/lib/validation";
-
 import "react-phone-number-input/style.css";
 import CustomFormField, { FormFieldType } from "../CustomFormField";
 import SubmitButton from "../SubmitButton";
 
 export const PatientForm = () => {
     const [isLoading, setIsLoading] = useState(false);
-
+    const router = useRouter();
 
     const form = useForm<z.infer<typeof UserFormValidation>>({
         resolver: zodResolver(UserFormValidation),
@@ -25,16 +23,38 @@ export const PatientForm = () => {
             password: "",
         },
     });
+
     const typedControl = form.control as unknown as Control<any, any>;
 
     const onSubmit = async (values: z.infer<typeof UserFormValidation>) => {
         setIsLoading(true);
-        // Yahan apni Express API call karein
-        console.log(values);
-        setIsLoading(false);
-    };
+        try {
+            const response = await fetch("/api/store/auth/signup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username: values.name,
+                    email: values.email,
+                    password: values.password,
+                }),
+            });
 
-    return (
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.message || "Registration failed");
+            }
+
+            router.push("/patient/register-patient");
+
+        } catch (error) {
+            console.error("Error:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }; 
+
+    return (   
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 space-y-6">
                 <section className="mb-12 space-y-4">
@@ -44,8 +64,7 @@ export const PatientForm = () => {
 
                 <CustomFormField
                     fieldType={FormFieldType.INPUT}
-
-                    control={form.control as unknown as Control<any, any>}
+                    control={typedControl}
                     name="name"
                     label="Full name"
                     placeholder="John Doe"
@@ -55,8 +74,7 @@ export const PatientForm = () => {
 
                 <CustomFormField
                     fieldType={FormFieldType.INPUT}
-
-                    control={form.control as unknown as Control<any, any>}
+                    control={typedControl}
                     name="email"
                     label="Email"
                     placeholder="johndoe@gmail.com"
@@ -70,10 +88,11 @@ export const PatientForm = () => {
                     name="password"
                     label="Password"
                     placeholder="Enter your password"
+                    type="password"
                 />
 
                 <SubmitButton isLoading={isLoading}>Register</SubmitButton>
             </form>
         </Form>
     );
-};
+}; 

@@ -16,14 +16,14 @@ export const generatePresignedUrl = async (fileType: string) => {
     const fileName = `doctors/${crypto.randomUUID()}.${fileExtension}`;
 
     const command = new PutObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET_NAME!,
+        Bucket: process.env.AWS_BUCKET_NAME!,
         Key: fileName,
         ContentType: fileType,
     });
 
-    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 60 }); // 60 seconds
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 }); // 60 seconds
 
-    const avatarUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+    const avatarUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
 
     return { presignedUrl, avatarUrl };
 };
@@ -33,7 +33,7 @@ export const deleteFromS3 = async (avatarUrl: string) => {
     const key = avatarUrl.split(".amazonaws.com/")[1]; // extract key from URL
 
     const command = new DeleteObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET_NAME!,
+        Bucket: process.env.AWS_BUCKET_NAME!,
         Key: key,
     });
 

@@ -6,7 +6,7 @@ declare type SearchParamProps = {
 };
 
 declare type Gender = "Male" | "Female" | "Other";
-declare type Status = "pending" | "scheduled" | "cancelled";
+declare type Status = "pending" | "scheduled" | "cancelled" | "confirmed";
 
 declare interface CreateUserParams {
   name: string;
@@ -55,3 +55,19 @@ declare type UpdateAppointmentParams = {
   appointment: Appointment;
   type: string;
 };
+
+
+// sidebar types
+
+declare interface NavItem {
+  href: string;
+  icon: string;
+  label: string;
+  badge?: number;
+  badgeVariant?: "cyan" | "orange";
+}
+
+declare interface SidebarProps {
+  userName?: string;
+  userRole?: string;
+}

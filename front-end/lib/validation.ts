@@ -7,28 +7,34 @@ export const UserFormValidation = z.object({
     .max(50, "Name must be at most 50 characters"),
   email: z.string().email("Invalid email address"),
   password: z
-  .string()
-  .min(8, "Password must be at least 8 characters")
-  .max(100, "Password is too long")
-  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-  .regex(/[0-9]/, "Password must contain at least one number")
-  .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(100, "Password is too long")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
 
 })
+
+export const SignInValidation = UserFormValidation.pick({
+  email: true,
+  password: true,
+});
+
+
 export const PatientFormValidation = z.object({
   name: z
     .string()
     .min(2, "Name must be at least 2 characters")
     .max(50, "Name must be at most 50 characters"),
   email: z.string().email("Invalid email address"),
-  password: z
-  .string()
-  .min(6, "Password must be at least 6 characters")
-  .regex(/[A-Z]/, "Must contain at least 1 uppercase letter")
-  .regex(/[0-9]/, "Must contain at least 1 number")
-  .regex(/[^A-Za-z0-9]/, "Must contain at least 1 special character"),
-  birthDate: z.coerce.date(),
+    phone: z.string().refine(
+    (phone) => /^\+\d{10,15}$/.test(phone),
+    "Invalid phone number"
+  ),
+  
+  birthDate: z.date(),
   gender: z.enum(["Male", "Female", "Other"]),
   address: z
     .string()
@@ -61,9 +67,7 @@ export const PatientFormValidation = z.object({
   currentMedication: z.string().optional(),
   familyMedicalHistory: z.string().optional(),
   pastMedicalHistory: z.string().optional(),
-  identificationType: z.string().optional(),
-  identificationNumber: z.string().optional(),
-  identificationDocument: z.custom<File[]>().optional(),
+
   treatmentConsent: z
     .boolean()
     .default(false)
@@ -86,7 +90,7 @@ export const PatientFormValidation = z.object({
 
 export const CreateAppointmentSchema = z.object({
   primaryPhysician: z.string().min(2, "Select at least one doctor"),
-  schedule: z.coerce.date(),
+  schedule: z.date(),
   reason: z
     .string()
     .min(2, "Reason must be at least 2 characters")
@@ -97,7 +101,7 @@ export const CreateAppointmentSchema = z.object({
 
 export const ScheduleAppointmentSchema = z.object({
   primaryPhysician: z.string().min(2, "Select at least one doctor"),
-  schedule: z.coerce.date(),
+  schedule: z.date(),
   reason: z.string().optional(),
   note: z.string().optional(),
   cancellationReason: z.string().optional(),
@@ -105,7 +109,7 @@ export const ScheduleAppointmentSchema = z.object({
 
 export const CancelAppointmentSchema = z.object({
   primaryPhysician: z.string().min(2, "Select at least one doctor"),
-  schedule: z.coerce.date(),
+  schedule: z.date(),
   reason: z.string().optional(),
   note: z.string().optional(),
   cancellationReason: z
@@ -124,3 +128,29 @@ export function getAppointmentSchema(type: string) {
       return ScheduleAppointmentSchema;
   }
 }
+
+export const CreateDoctorSchema = z.object({
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(50, "Name must be at most 50 characters"),
+  email: z.string().email("Invalid email address"),
+  phone: z
+    .string()
+    .refine((val) => /^\+\d{10,15}$/.test(val), "Invalid phone number"),
+  specialization: z
+    .string()
+    .min(2, "Specialization must be at least 2 characters"),
+  experience: z
+    .string()
+    .min(1, "Experience is required")
+    .refine((val) => !isNaN(Number(val)) && Number(val) >= 0 && Number(val) <= 60, {
+      message: "Experience must be a number between 0 and 60",
+    }),
+  available: z.boolean(),
+  workingDays: z
+    .array(z.string())
+    .min(1, "Select at least one working day"),
+  workingHoursStart: z.string().min(1, "Select start time"),
+  workingHoursEnd: z.string().min(1, "Select end time"),
+});

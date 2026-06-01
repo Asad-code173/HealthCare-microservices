@@ -2,7 +2,8 @@ import { Router } from "express";
 import {
     registerUser,
     loginUser, logoutUser,
-    changeCurrentPassword,refreshAccessToken,getAdminDashboard
+    changeCurrentPassword,refreshAccessToken,getAdminDashboard,
+    userprofile
 } from "../controller/usercontroller.js";
 import { verifyJWT,isAdmin } from "../../Middleware/Authmiddleware.js";
 
@@ -18,6 +19,8 @@ router.route("/refresh-token").post(refreshAccessToken)
 router.route("/change-password").patch(verifyJWT,changeCurrentPassword)
 // // admin
 router.route("/admin/dashboard").get(verifyJWT,isAdmin,getAdminDashboard)
+
+router.route("/me").get(verifyJWT,userprofile)
 
 
 

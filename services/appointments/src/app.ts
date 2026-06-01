@@ -2,6 +2,7 @@ import express from "express";
 import type { Express } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
@@ -16,6 +17,10 @@ app.use(cors({
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
+app.use(express.static("public"));
+app.use(cookieParser());
 
+import appointmentRouter from "./routes/route.js"
 
+app.use("/api/v1/appointments", appointmentRouter)
 export { app };

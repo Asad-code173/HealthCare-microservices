@@ -28,7 +28,7 @@ export enum FormFieldType {
 }
 
 interface CustomProps {
-  control: Control<any,any>;
+  control: Control<any, any>;
   name: string;
   label?: string;
   placeholder?: string;
@@ -40,6 +40,7 @@ interface CustomProps {
   children?: React.ReactNode;
   renderSkeleton?: (field: any) => React.ReactNode;
   fieldType: FormFieldType;
+  type?: string
 }
 
 const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
@@ -58,6 +59,7 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
           )}
           <FormControl>
             <Input
+              type={props.type || "text"}
               placeholder={props.placeholder}
               {...field}
               className="shad-input border-0"
@@ -80,7 +82,7 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
       return (
         <FormControl>
           <PhoneInput
-            defaultCountry="US"
+            defaultCountry="PK"
             placeholder={props.placeholder}
             international
             withCountryCallingCode
@@ -119,7 +121,7 @@ const RenderInput = ({ field, props }: { field: any; props: CustomProps }) => {
             <ReactDatePicker
               showTimeSelect={props.showTimeSelect ?? false}
               selected={field.value}
-              onChange={(date: Date|null) => field.onChange(date)}
+              onChange={(date: Date | null) => field.onChange(date)}
               timeInputLabel="Time:"
               dateFormat={props.dateFormat ?? "MM/dd/yyyy"}
               wrapperClassName="date-picker"

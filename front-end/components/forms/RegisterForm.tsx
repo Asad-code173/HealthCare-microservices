@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { useState } from "react";
-import { Control, useForm,Resolver } from "react-hook-form";
+import { Control, useForm, Resolver } from "react-hook-form";
 import { z } from "zod";
 
 import { Form, FormControl } from "../ui/form";
@@ -21,30 +21,74 @@ import { PatientFormValidation } from "../../lib/validation";
 import "react-datepicker/dist/react-datepicker.css";
 import "react-phone-number-input/style.css";
 import CustomFormField, { FormFieldType } from "../CustomFormField";
-import { FileUploader } from "../FileUploader";
+
 import SubmitButton from "../SubmitButton";
 
-const RegisterForm = ({ user }: { user: User }) => {
+type RegisterFormProps = {
+  user: {
+    name: string;
+    email: string;
+  };
+};
+
+
+const RegisterForm = ({ user }: RegisterFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
- const form = useForm<z.infer<typeof PatientFormValidation>>({
-  resolver: zodResolver(PatientFormValidation) as Resolver<z.infer<typeof PatientFormValidation>>,
-  defaultValues: {
-    ...PatientFormDefaultValues,
-    name: user.name,
-    email: user.email,
-    password: user.password,
-    
-  },
-});
+  const form = useForm<z.infer<typeof PatientFormValidation>>({
+    resolver: zodResolver(PatientFormValidation) as Resolver<z.infer<typeof PatientFormValidation>>,
+    defaultValues: {
+      ...PatientFormDefaultValues,
+      name: user.name,
+      email: user.email,
+      gender: "Male"
+
+
+
+    },
+  });
 
   const typedControl = form.control as unknown as Control<any, any>;
 
   const onSubmit = async (values: z.infer<typeof PatientFormValidation>) => {
     setIsLoading(true);
-    // Yahan apni Express API call karein
-    console.log(values);
-    setIsLoading(false);
+    try {
+      const response = await fetch("/api/store/patients/register-patient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          fullName: values.name,
+          email: values.email,
+          phone: values.phone,
+          birthDate: values.birthDate,
+          gender: values.gender,
+          address: values.address,
+          occupation: values.occupation,
+          emergencyContactName: values.emergencyContactName,
+          emergencyContactNumber: values.emergencyContactNumber,
+          primaryPhysician: values.primaryPhysician,
+          insuranceProvider: values.insuranceProvider,
+          insurancePolicyNumber: values.insurancePolicyNumber,
+          allergies: values.allergies,
+          currentMedication: values.currentMedication,
+          familyMedicalHistory: values.familyMedicalHistory,
+          pastMedicalHistory: values.pastMedicalHistory,
+          privacyConsent: values.privacyConsent,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) throw new Error(data.message);
+
+      window.location.href = "/patient/dashboard";
+
+    } catch (error) {
+      console.error("Registration failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -107,12 +151,19 @@ const RegisterForm = ({ user }: { user: User }) => {
                 <FormControl>
                   <RadioGroup
                     className="flex h-11 gap-6 xl:justify-between"
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    onValueChange={(val) => {
+                    
+                      field.onChange(val);
+                    }}
+                    value={field.value}
                   >
                     {GenderOptions.map((option, i) => (
                       <div key={option + i} className="radio-group">
-                        <RadioGroupItem value={option} id={option} />
+                        <RadioGroupItem
+                          value={option}
+                          id={option}
+                          className="border-dark-500 text-green-500" // ✅ yeh add karo
+                        />
                         <Label htmlFor={option} className="cursor-pointer">
                           {option}
                         </Label>
@@ -239,45 +290,7 @@ const RegisterForm = ({ user }: { user: User }) => {
           </div>
         </section>
 
-        <section className="space-y-6">
-          <div className="mb-9 space-y-1">
-            <h2 className="sub-header">Identification and Verfication</h2>
-          </div>
 
-          <CustomFormField
-            fieldType={FormFieldType.SELECT}
-            control={typedControl}
-            name="identificationType"
-            label="Identification Type"
-            placeholder="Select identification type"
-          >
-            {IdentificationTypes.map((type, i) => (
-              <SelectItem key={type + i} value={type}>
-                {type}
-              </SelectItem>
-            ))}
-          </CustomFormField>
-
-          <CustomFormField
-            fieldType={FormFieldType.INPUT}
-            control={typedControl}
-            name="identificationNumber"
-            label="Identification Number"
-            placeholder="123456789"
-          />
-
-          <CustomFormField
-            fieldType={FormFieldType.SKELETON}
-            control={typedControl}
-            name="identificationDocument"
-            label="Scanned Copy of Identification Document"
-            renderSkeleton={(field) => (
-              <FormControl>
-                <FileUploader files={field.value} onChange={field.onChange} />
-              </FormControl>
-            )}
-          />
-        </section>
 
         <section className="space-y-6">
           <div className="mb-9 space-y-1">

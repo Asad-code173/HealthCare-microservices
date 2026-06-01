@@ -4,31 +4,52 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { prisma } from "../../lib/prisma.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import type { Request, Response} from "express";
+import type { Request, Response } from "express";
 import type { RegisterUserBody, LoginUserBody } from "../types/Auth.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwt.js";
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
+
 
 const generateAccessAndRefreshTokens = async (
     userId: string
-): Promise<{ accessToken: string; refreshToken: string }> => {
+): Promise<{
+    accessToken: string;
+    refreshToken: string;
+}> => {
     try {
-        const user = await prisma.user.findUnique({ where: { id: userId } });
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
 
-        if (!user) throw new ApiError(404, "User not found");
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
 
-        const accessToken = generateAccessToken(user.id);
-        const refreshToken = generateRefreshToken(user.id);
+        const accessToken = generateAccessToken({
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            role: user.role,
+        });
+
+        const refreshToken =
+            generateRefreshToken(user.id);
 
         await prisma.user.update({
             where: { id: user.id },
             data: { refreshToken }
         });
 
-        return { accessToken, refreshToken };
+        return {
+            accessToken,
+            refreshToken
+        };
+
     } catch (error) {
-        throw new ApiError(500, "Something went wrong while generating access and refresh tokens");
+        throw new ApiError(
+            500,
+            "Something went wrong while generating access and refresh tokens"
+        );
     }
 };
 
@@ -57,10 +78,15 @@ const registerUser = asyncHandler(async (req: Request<{}, {}, RegisterUserBody>,
         },
         select: { id: true, username: true, email: true, role: true, createdAt: true }
     });
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user.id);
 
-    return res.status(201).json(
-        new ApiResponse(201, user, "User registered successfully")
-    );
+    const options = { httpOnly: true, secure: true, sameSite: "none" as const };
+
+    return res
+        .status(201)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(new ApiResponse(201, { user, accessToken }, "User registered successfully"));
 });
 
 // Login 
@@ -89,6 +115,9 @@ const loginUser = asyncHandler(async (req: Request<{}, {}, LoginUserBody>, res: 
     });
 
     const options = { httpOnly: true, secure: true, sameSite: "none" as const };
+    console.log("Generated Access Token:", accessToken);
+    console.log("Setting accessToken cookie");
+
 
     return res
         .status(200)
@@ -125,7 +154,7 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
     if (!incomingRefreshToken) throw new ApiError(401, "Unauthorized request");
 
     try {
-        const decodedToken = jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET!) as { id: string }; 
+        const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET!) as { id: string };
 
         const user = await prisma.user.findUnique({ where: { id: decodedToken.id } });
 
@@ -151,7 +180,7 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
     }
 });
 
-// ─── Change Password ──────────────────────────────────────────────────────────
+// Change Password 
 
 const changeCurrentPassword = asyncHandler(async (req: Request, res: Response) => {
     const { oldPassword, newPassword } = req.body;
@@ -166,7 +195,7 @@ const changeCurrentPassword = asyncHandler(async (req: Request, res: Response) =
 
     if (!isPasswordCorrect) throw new ApiError(400, "Invalid old password");
 
-    // ✅ No .save() in Prisma — use update
+
     await prisma.user.update({
         where: { id: user.id },
         data: { password: await bcrypt.hash(newPassword, 10) }
@@ -175,13 +204,17 @@ const changeCurrentPassword = asyncHandler(async (req: Request, res: Response) =
     return res.status(200).json(new ApiResponse(200, {}, "Password changed successfully"));
 });
 
-// ─── Admin ────────────────────────────────────────────────────────────────────
+
 
 const getAdminDashboard = asyncHandler(async (req: Request, res: Response) => {
     return res.status(200).json({ message: "Welcome Admin" });
 });
 
-// ─── Exports ──────────────────────────────────────────────────────────────────
+  const userprofile = asyncHandler(async (req, res) => {
+  console.log("REQ USER:", req.user);
+  return res.status(200).json(new ApiResponse(200, req.user, "User fetched successfully"));
+});
+
 
 export {
     registerUser,
@@ -189,5 +222,6 @@ export {
     logoutUser,
     refreshAccessToken,
     changeCurrentPassword,
-    getAdminDashboard
+    getAdminDashboard,
+    userprofile
 };

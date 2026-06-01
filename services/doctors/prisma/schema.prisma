@@ -12,8 +12,8 @@ model Doctor {
   name           String
   specialization String
   email          String   @unique
-  phone          String?
-  experience     Int
+  phone          String   @unique
+  experience     String
   avatar         String?  // S3 URL
   available      Boolean  @default(true)
 

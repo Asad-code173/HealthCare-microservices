@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  /* config options here */
+const nextConfig = {
+  output: "standalone",
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "healthcaredatadoctors.s3.ap-south-1.amazonaws.com",
+      },
+    ],
+  },
 };
 
 export default nextConfig;

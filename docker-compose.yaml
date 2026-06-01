@@ -1,0 +1,79 @@
+services:
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  auth-service:
+    build:
+      context: ./services/auth
+    env_file:
+      - ./services/auth/.env
+    ports:
+      - "8001:8001"
+
+  doctor-service:
+    build:
+      context: ./services/doctors
+    env_file:
+      - ./services/doctors/.env
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8002:8002"
+
+  patient-service:
+    build:
+      context: ./services/patients
+    env_file:
+      - ./services/patients/.env
+    ports:
+      - "8003:8003"
+
+  appointment-service:
+    build:
+      context: ./services/appointments
+    env_file:
+      - ./services/appointments/.env
+    ports:
+      - "8004:8004"
+
+  gateway-service:
+    build:
+      context: ./services/gateway
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8001
+      DOCTOR_SERVICE_URL: http://doctor-service:8002
+      PATIENT_SERVICE_URL: http://patient-service:8003
+      APPOINTMENT_SERVICE_URL: http://appointment-service:8004
+    depends_on:
+      auth-service:
+        condition: service_started
+      doctor-service:
+        condition: service_started
+      patient-service:
+        condition: service_started
+      appointment-service:
+        condition: service_started
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./front-end
+    env_file:
+      - ./front-end/.env
+    depends_on:
+      gateway-service:
+        condition: service_started
+    ports:
+      - "3000:3000"

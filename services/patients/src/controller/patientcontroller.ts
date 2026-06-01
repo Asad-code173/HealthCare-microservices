@@ -23,9 +23,7 @@ const registerPatient = asyncHandler(async (req: Request, res: Response) => {
     currentMedication,
     familyMedicalHistory,
     pastMedicalHistory,
-    identificationType,
-    identificationNumber,
-    identificationDocument,
+    
     privacyConsent,
   } = req.body;
 
@@ -40,8 +38,7 @@ const registerPatient = asyncHandler(async (req: Request, res: Response) => {
     !emergencyContactName ||
     !emergencyContactNumber ||
     !primaryPhysician ||
-    !identificationType ||
-    !identificationNumber ||
+    
     !privacyConsent
   ) {
     throw new ApiError(400, "Please fill all required fields");
@@ -56,14 +53,14 @@ const registerPatient = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(409, "Patient with this email already exists");
   }
 
-  // Create patient
+ 
   const patient = await prisma.patient.create({
     data: {
       fullName,
       email,
       phone,
       birthDate: new Date(birthDate),
-      gender,
+      gender: gender.toUpperCase(),
       address,
       occupation,
       emergencyContactName,
@@ -75,9 +72,7 @@ const registerPatient = asyncHandler(async (req: Request, res: Response) => {
       currentMedication,
       familyMedicalHistory,
       pastMedicalHistory,
-      identificationType,
-      identificationNumber,
-      identificationDocument,
+      
       privacyConsent,
     },
   });
@@ -113,41 +108,6 @@ const getPatients = asyncHandler(async (_req: Request, res: Response) => {
 
 
 
-const updatePatient = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params as {id:string}  ;
-  const {
-    phone,
-    address,
-    occupation,
-    emergencyContactName,
-    emergencyContactNumber,
-  } = req.body;
-
-  // Check if patient exists
-  const patient = await prisma.patient.findUnique({
-    where: { id },
-  });
-
-  if (!patient) {
-    throw new ApiError(404, "Patient not found");
-  }
-
-  const updatedPatient = await prisma.patient.update({
-    where: { id },
-    data: {
-      ...(phone && { phone }),
-      ...(address && { address }),
-      ...(occupation && { occupation }),
-      ...(emergencyContactName && { emergencyContactName }),
-      ...(emergencyContactNumber && { emergencyContactNumber }),
-    },
-  });
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, updatedPatient, "Patient updated successfully"));
-});
-
 
 const getPatientById = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
@@ -169,8 +129,7 @@ const getPatientById = asyncHandler(async (req: Request, res: Response) => {
 
 export { 
     registerPatient,
-    getPatients,
-    updatePatient,
+    getPatients,    
     getPatientById
 };
 
