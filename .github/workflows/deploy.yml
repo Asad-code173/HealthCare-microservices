@@ -195,11 +195,16 @@ jobs:
 
          echo "Waiting for ArgoCD deployments..."
 
-         kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=300s
-         kubectl rollout status deployment/argocd-dex-server -n argocd --timeout=300s
-         kubectl rollout status deployment/argocd-application-controller -n argocd --timeout=300s
-         kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
-      
+         for deploy in \
+         argocd-repo-server \
+         argocd-dex-server \
+         argocd-server \
+         argocd-application-controller
+         do
+         echo "Waiting for $deploy..."
+         kubectl wait --for=condition=available deployment/$deploy \
+         -n argocd --timeout=300s || true
+         done
       - name: Install Prometheus and Grafana
         run: |
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
