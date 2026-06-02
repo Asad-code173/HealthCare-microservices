@@ -1,7 +1,4 @@
 
-
-
-
 # VPC
 
 resource "aws_vpc" "main" {
