@@ -183,17 +183,23 @@ jobs:
           aws eks update-kubeconfig \
             --region "${AWS_REGION}" \
             --name "${CLUSTER_NAME}"
-
       - name: Install ArgoCD
         run: |
-          kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-            kubectl apply --server-side \
-            -n argocd \
-            -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+         set -euo pipefail
 
-          kubectl wait --for=condition=available deployment/argocd-server \
-            -n argocd --timeout=300s
+         kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 
+         kubectl apply --server-side --force-conflicts \
+         -n argocd \
+         -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+         echo "Waiting for ArgoCD deployments..."
+
+         kubectl rollout status deployment/argocd-repo-server -n argocd --timeout=300s
+         kubectl rollout status deployment/argocd-dex-server -n argocd --timeout=300s
+         kubectl rollout status deployment/argocd-application-controller -n argocd --timeout=300s
+         kubectl rollout status deployment/argocd-server -n argocd --timeout=300s
+      
       - name: Install Prometheus and Grafana
         run: |
           helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
