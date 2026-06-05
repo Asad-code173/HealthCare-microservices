@@ -1,8 +1,8 @@
-
+# ── ALB Security Group ────────────────────────────────
 resource "aws_security_group" "alb" {
   name        = "${var.project_name}-alb-sg"
   description = "ALB Security Group (public entry point)"
-  vpc_id      = aws_vpc.main.id    
+  vpc_id      = aws_vpc.main.id
 
   ingress {
     from_port   = 80
@@ -27,16 +27,16 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = merge(var.tags, {
+  tags = merge(local.common_tags, {    # FIXED ✅
     Name = "${var.project_name}-alb-sg"
   })
 }
 
-# ── EKS Cluster 
+# ── EKS Cluster SG ───────────────────────────────────
 resource "aws_security_group" "eks_cluster" {
   name        = "${var.project_name}-eks-cluster-sg"
   description = "EKS control plane security group."
-  vpc_id      = aws_vpc.main.id 
+  vpc_id      = aws_vpc.main.id
 
   egress {
     from_port   = 0
@@ -56,16 +56,14 @@ resource "aws_security_group" "eks_nodes" {
   description = "EKS worker nodes security group."
   vpc_id      = aws_vpc.main.id
 
-  # Node-to-node communication
   ingress {
     from_port   = 0
     to_port     = 65535
     protocol    = "tcp"
-    self         = true
-    description  = "Node to node communication"
+    self        = true
+    description = "Node to node communication"
   }
 
-  # Control plane → nodes
   ingress {
     from_port       = 1025
     to_port         = 65535
@@ -74,7 +72,7 @@ resource "aws_security_group" "eks_nodes" {
     description     = "Control plane to nodes"
   }
 
-  # ALB → Ingress Controller 
+  # Rakha — future target type change ke liye ✅
   ingress {
     from_port       = 80
     to_port         = 80
@@ -98,10 +96,9 @@ resource "aws_security_group" "eks_nodes" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  
   tags = merge(local.common_tags, {
-  Name = "${var.project_name}-eks-nodes-sg"
-})
+    Name = "${var.project_name}-eks-nodes-sg"
+  })
 }
 
 # ── RDS SG ───────────────────────────────────────────
@@ -122,7 +119,6 @@ resource "aws_security_group" "rds" {
   })
 }
 
-# EKS nodes → RDS
 resource "aws_security_group_rule" "rds_from_nodes" {
   type                     = "ingress"
   from_port                = 5432
@@ -151,7 +147,6 @@ resource "aws_security_group" "redis" {
   })
 }
 
-# EKS nodes → Redis
 resource "aws_security_group_rule" "redis_from_nodes" {
   type                     = "ingress"
   from_port                = 6379

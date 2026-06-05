@@ -1,20 +1,19 @@
-# ── RDS Subnet Group ─────────────────────────────────
+
 resource "aws_db_subnet_group" "main" {
   name       = "${var.project_name}-db-subnets"   
   subnet_ids = aws_subnet.private[*].id     
 
-  tags = merge(var.tags, {                        
-    Name = "${var.project_name}-db-subnets"
-  })
+  tags = merge(local.common_tags, {
+  Name = "${var.project_name}-db-subnets"
+})
 }
 
-# ── RDS PostgreSQL ────────────────────────────────────
 resource "aws_db_instance" "postgres" {
   identifier             = "${var.project_name}-postgres"
   allocated_storage      = 20
   max_allocated_storage  = 100
   engine                 = "postgres"
-  engine_version         = "15"                 
+  engine_version         = "15.4"                 
   instance_class         = var.db_instance_class 
   db_name                = var.db_name
   username               = var.db_username
@@ -22,10 +21,11 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
   storage_type           = "gp3"
-  skip_final_snapshot    = true
-  deletion_protection    = false
+  skip_final_snapshot    = false
+  deletion_protection    = true
   publicly_accessible    = false
-  backup_retention_period = 0
+  backup_retention_period = 7
+  final_snapshot_identifier = "${var.project_name}-postgres-final"
 
 
   tags = merge(local.common_tags, {
@@ -33,7 +33,6 @@ resource "aws_db_instance" "postgres" {
   })
 }
 
-# ── ElastiCache Subnet Group ──────────────────────────
 resource "aws_elasticache_subnet_group" "main" {
   name       = "${var.project_name}-cache-subnets"
   subnet_ids = aws_subnet.private[*].id
@@ -43,7 +42,6 @@ resource "aws_elasticache_subnet_group" "main" {
   })
 }
 
-# ── ElastiCache Redis ─────────────────────────────────
 resource "aws_elasticache_cluster" "redis" {
   cluster_id           = "${var.project_name}-redis"
   engine               = "redis"

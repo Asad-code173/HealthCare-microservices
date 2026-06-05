@@ -4,6 +4,11 @@ data "aws_availability_zones" "available" {
 
 data "aws_caller_identity" "current" {}
 
+# EKS auth token — kubernetes + helm provider ke liye
+data "aws_eks_cluster_auth" "main" {
+  name = aws_eks_cluster.main.name
+}
+
 locals {
   azs = length(var.availability_zones) > 0 ? var.availability_zones : slice(data.aws_availability_zones.available.names, 0, 2)
 
@@ -17,7 +22,6 @@ locals {
 
   service_names = [
     "frontend",
-    "gateway",
     "auth-service",
     "patient-service",
     "doctor-service",
@@ -26,7 +30,6 @@ locals {
 
   service_ports = {
     frontend            = 3000
-    gateway             = 8080
     auth-service        = 8001
     doctor-service      = 8002
     patient-service     = 8003

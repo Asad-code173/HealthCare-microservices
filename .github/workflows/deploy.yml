@@ -1,20 +1,20 @@
-name: Deploy To EKS
+name: Deploy
 
 on:
   push:
     branches:
       - main
     paths:
-      - ".github/workflows/deploy.yml"
       - "front-end/**"
       - "services/**"
-      - "infra/**"
-      - "helm/**"
       - "argocd/**"
+      - "helm/charts/**"
+      - "helm/templates/**"
+      - "helm/Chart.yaml"
   workflow_dispatch:
     inputs:
       image_tag:
-        description: Optional image tag override. Leave blank to use the commit SHA.
+        description: Optional image tag override. Leave blank to use commit SHA.
         required: false
         type: string
 
@@ -25,19 +25,30 @@ permissions:
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
   PROJECT_NAME: ${{ vars.PROJECT_NAME || 'eks-healthcare' }}
-  CLUSTER_NAME: ${{ vars.CLUSTER_NAME || 'healthcare-eks' }}
-  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
-  TF_STATE_KEY: ${{ vars.TF_STATE_KEY || 'production/terraform.tfstate' }}
+  CLUSTER_NAME: ${{ vars.CLUSTER_NAME || 'healthcare-eks' }}  # ✅ add kiya
   AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
-  TF_IN_AUTOMATION: true
 
 concurrency:
-  group: eks-healthcare-production
+  group: eks-healthcare-deploy
   cancel-in-progress: false
 
 jobs:
+  wait-for-infra:
+    name: Wait for infra
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for infra workflow
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-name: "Terraform Apply"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+          allowed-conclusions: success,skipped
+
   deploy:
-    name: Apply Terraform, Push Images, Update EKS
+    name: Build + Scan + Push
+    needs: wait-for-infra
     runs-on: ubuntu-latest
     environment: production
 
@@ -45,206 +56,124 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v4
-        with:
-          terraform_version: 1.14.8
-
-      - name: Validate required GitHub configuration
+      - name: Validate required config
         shell: bash
         run: |
           set -euo pipefail
-
-          if [[ -z "${TF_STATE_BUCKET}" ]]; then
-            echo "TF_STATE_BUCKET GitHub variable is required."
-            exit 1
-          fi
-
-          if [[ -z "${AWS_ROLE_TO_ASSUME}" ]]; then
-            echo "AWS_ROLE_TO_ASSUME GitHub variable is required."
-            exit 1
-          fi
-
-          if [[ -z "${{ secrets.TF_VAR_db_password }}" ]]; then
-            echo "TF_VAR_db_password GitHub secret is required."
-            exit 1
-          fi
+          [[ -z "${AWS_ROLE_TO_ASSUME}" ]] && echo "AWS_ROLE_TO_ASSUME required" && exit 1
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
-
-      - name: Confirm Terraform state bucket exists
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if ! aws s3api head-bucket --bucket "${TF_STATE_BUCKET}" 2>/dev/null; then
-            echo "Terraform state bucket not found: ${TF_STATE_BUCKET}"
-            echo "Run the Bootstrap Terraform Backend workflow first."
-            exit 1
-          fi
 
       - name: Decide image tag
         id: meta
         shell: bash
         run: |
           set -euo pipefail
-
-          image_tag=""
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            image_tag="${{ github.event.inputs.image_tag }}"
-          fi
-
-          if [[ -z "${image_tag}" ]]; then
-            image_tag="${GITHUB_SHA::12}"
-          fi
-
+          image_tag="${{ github.event.inputs.image_tag }}"
+          [[ -z "${image_tag}" ]] && image_tag="${GITHUB_SHA::12}"
           echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
 
-      - name: Render backend config for Terraform
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          cat > infra/terraform/backend.hcl <<EOF
-          bucket       = "${TF_STATE_BUCKET}"
-          key          = "${TF_STATE_KEY}"
-          region       = "${AWS_REGION}"
-          use_lockfile = true
-          EOF
-
-      - name: Initialize Terraform with remote state
-        run: terraform init -input=false -backend-config=backend.hcl
-        working-directory: infra/terraform
-
-      - name: Apply Terraform infrastructure
-        run: |
-          terraform apply -auto-approve \
-            -var "aws_region=${AWS_REGION}" \
-            -var "project_name=${PROJECT_NAME}" \
-            -var "db_password=${{ secrets.TF_VAR_db_password }}" \
-            -var "image_tag=${{ steps.meta.outputs.image_tag }}"
-        working-directory: infra/terraform
-
-      - name: Get AWS account id
+      - name: Get AWS account ID
         id: aws
-        shell: bash
         run: |
-          set -euo pipefail
-          echo "account_id=$(aws sts get-caller-identity --query Account --output text)" >> "$GITHUB_OUTPUT"
+          echo "account_id=$(aws sts get-caller-identity \
+            --query Account --output text)" >> "$GITHUB_OUTPUT"
 
-      - name: Log in to Amazon ECR
+      - name: Log in to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, Trivy scan, and push images
+      - name: Build, scan, push images
         shell: bash
         env:
           ACCOUNT_ID: ${{ steps.aws.outputs.account_id }}
           IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
         run: |
           set -euo pipefail
-
           registry="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
           services=(
             "frontend:front-end"
-            "gateway:services/gateway"
             "auth-service:services/auth"
             "doctor-service:services/doctors"
             "patient-service:services/patients"
             "appointment-service:services/appointments"
           )
-
           for entry in "${services[@]}"; do
             name="${entry%%:*}"
             path="${entry#*:}"
             image_uri="${registry}/${PROJECT_NAME}-${name}:${IMAGE_TAG}"
 
-            echo "Building ${image_uri}"
+            echo "▶ Building ${name}"
             docker build --tag "${image_uri}" "${path}"
 
-            echo "Scanning ${name} with Trivy"
+            echo "▶ Scanning ${name} with Trivy"
             docker run --rm \
               -v /var/run/docker.sock:/var/run/docker.sock \
               aquasec/trivy:latest image \
               --exit-code 1 \
-              --severity CRITICAL \
+              --severity HIGH,CRITICAL \
               --no-progress \
               "${image_uri}"
 
-            echo "Pushing ${image_uri}"
+            echo "▶ Pushing ${name}"
             docker push "${image_uri}"
           done
 
-      - name: Update kubeconfig for EKS
-        run: |
-          aws eks update-kubeconfig \
-            --region "${AWS_REGION}" \
-            --name "${CLUSTER_NAME}"
-      - name: Install ArgoCD
-        run: |
-         set -euo pipefail
-
-         kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-
-         kubectl apply --server-side --force-conflicts \
-         -n argocd \
-         -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-         echo "Waiting for ArgoCD deployments..."
-
-         for deploy in \
-         argocd-repo-server \
-         argocd-dex-server \
-         argocd-server \
-         argocd-application-controller
-         do
-         echo "Waiting for $deploy..."
-         kubectl wait --for=condition=available deployment/$deploy \
-         -n argocd --timeout=300s || true
-         done
-      - name: Install Prometheus and Grafana
-        run: |
-          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-          helm repo update
-          helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
-            --namespace monitoring \
-            --create-namespace \
-            --wait \
-            --timeout 300s
-
-      - name: Apply ArgoCD configuration
-        run: |
-          kubectl apply -f argocd/install/argocd-install.yaml
-          kubectl apply -f argocd/apps/app-of-apps.yaml
-
-      - name: Update Helm values with new image tag
+      - name: Update image tag in Helm values
         env:
           IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
           ACCOUNT_ID: ${{ steps.aws.outputs.account_id }}
         run: |
           sed -i "s|imageTag:.*|imageTag: \"${IMAGE_TAG}\"|" helm/values.yaml
-          sed -i "s|registry:.*|registry: \"${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com\"|" helm/values.yaml
+          sed -i \
+            "s|registry:.*|registry: \"${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com\"|" \
+            helm/values.yaml
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
           git add helm/values.yaml
-          git commit -m "ci: update image tag to ${IMAGE_TAG}" || true
-          git push || true
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: update image tag to ${IMAGE_TAG}"
+            git push
+          fi
 
-      - name: Wait for ArgoCD to sync
+      # ── Frontend URL — ArgoCD sync ke baad milega ──
+      - name: Get frontend URL
         run: |
-          kubectl wait --for=condition=healthy application/healthcare \
-            -n argocd --timeout=300s || true
+          aws eks update-kubeconfig \
+            --region "${AWS_REGION}" \
+            --name "${CLUSTER_NAME}"
 
-      - name: Summarize deployment
-        shell: bash
-        run: |
+          echo "⏳ Waiting for ingress URL..."
+          for i in $(seq 1 20); do
+            url=$(kubectl get ingress -A \
+              -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' \
+              2>/dev/null || true)
+
+            if [[ -n "${url}" ]]; then
+              {
+                echo "## ✅ Deploy complete"
+                echo "- Image tag: ${{ steps.meta.outputs.image_tag }}"
+                echo "- Project: ${PROJECT_NAME}"
+                echo "- Region: ${AWS_REGION}"
+                echo "## 🌐 Frontend URL"
+                echo "http://${url}"
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+
+            echo "Attempt ${i}/20 — waiting 30s..."
+            sleep 30
+          done
+
+          # 10 min baad bhi URL nahi mila
           {
-            echo "## Deployment complete"
-            echo
+            echo "## ✅ Deploy complete"
             echo "- Image tag: ${{ steps.meta.outputs.image_tag }}"
-            echo "- Cluster: ${CLUSTER_NAME}"
+            echo "- Project: ${PROJECT_NAME}"
             echo "- Region: ${AWS_REGION}"
+            echo "## ⚠️ Frontend URL"
+            echo "Not available yet — run: kubectl get ingress -A"
           } >> "$GITHUB_STEP_SUMMARY"

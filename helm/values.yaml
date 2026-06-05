@@ -10,25 +10,20 @@ services:
     replicas: 1
     image: eks-healthcare-frontend
 
-  gateway:
-    port: 8080
-    replicas: 1
-    image: eks-healthcare-gateway
 
   auth-service:
     port: 8001
     replicas: 1
     image: eks-healthcare-auth-service
+  doctor-service:
+    port: 8002
+    replicas: 1
+    image: eks-healthcare-doctor-service
 
   patient-service:
     port: 8003
     replicas: 1
     image: eks-healthcare-patient-service
-
-  doctor-service:
-    port: 8002
-    replicas: 1
-    image: eks-healthcare-doctor-service
 
   appointment-service:
     port: 8004
@@ -39,7 +34,7 @@ ingress:
   enabled: true
   className: alb
   host: ""
-
+  securityGroupId: ""
 resources:
   requests:
     cpu: "100m"

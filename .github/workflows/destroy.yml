@@ -123,7 +123,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          services=(frontend gateway auth-service patient-service doctor-service appointment-service)
+          services=(frontend  auth-service patient-service doctor-service appointment-service)
 
           for service in "${services[@]}"; do
             repository_name="${PROJECT_NAME}-${service}"

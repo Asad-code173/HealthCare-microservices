@@ -1,0 +1,97 @@
+name: Infra
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "infra/**"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+  PROJECT_NAME: ${{ vars.PROJECT_NAME || 'eks-healthcare' }}
+  TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+  TF_STATE_KEY: ${{ vars.TF_STATE_KEY || 'production/terraform.tfstate' }}
+  AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
+  TF_IN_AUTOMATION: true
+
+concurrency:
+  group: eks-healthcare-infra
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.14.8
+
+      - name: Validate required config
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -z "${TF_STATE_BUCKET}" ]] && echo "TF_STATE_BUCKET required" && exit 1
+          [[ -z "${AWS_ROLE_TO_ASSUME}" ]] && echo "AWS_ROLE_TO_ASSUME required" && exit 1
+          [[ -z "${{ secrets.TF_VAR_db_password }}" ]] && echo "db_password secret required" && exit 1
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+
+      - name: Confirm state bucket exists
+        shell: bash
+        run: |
+          aws s3api head-bucket --bucket "${TF_STATE_BUCKET}" || {
+            echo "State bucket not found. Run bootstrap workflow first."
+            exit 1
+          }
+
+      - name: Render backend config
+        shell: bash
+        run: |
+          cat > infra/terraform/backend.hcl <<EOF
+          bucket       = "${TF_STATE_BUCKET}"
+          key          = "${TF_STATE_KEY}"
+          region       = "${AWS_REGION}"
+          use_lockfile = true
+          EOF
+
+      - name: Terraform init
+        run: terraform init -input=false -backend-config=backend.hcl
+        working-directory: infra/terraform
+
+      - name: Terraform plan
+        run: |
+          terraform plan \
+          -out=tfplan \
+          -var "aws_region=${AWS_REGION}" \
+          -var "project_name=${PROJECT_NAME}" \
+          -var "db_password=${{ secrets.TF_VAR_db_password }}"
+        working-directory: infra/terraform
+
+      - name: Terraform apply
+        run: |
+         terraform apply -auto-approve tfplan    
+        working-directory: infra/terraform
+
+      - name: Summarize
+        run: |
+          {
+            echo "- Region: ${AWS_REGION}"
+            echo "- Project: ${PROJECT_NAME}"
+          } >> "$GITHUB_STEP_SUMMARY"

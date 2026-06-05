@@ -10,6 +10,7 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/security-groups: "{{ .Values.ingress.securityGroupId }}"
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:
@@ -22,11 +23,5 @@ spec:
                 name: frontend
                 port:
                   number: {{ .Values.services.frontend.port }}
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: gateway
-                port:
-                  number: {{ .Values.services.gateway.port }}
+
 {{- end }}

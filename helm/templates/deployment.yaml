@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: {{ $name }}
-          image: {{- include "healthcare.image" (dict "global" $.Values.global "image" $svc.image) | indent 1 }}
+          image: "{{ include "healthcare.image" (dict "global" $.Values.global "image" $svc.image) }}"
           ports:
             - containerPort: {{ $svc.port }}
           resources:

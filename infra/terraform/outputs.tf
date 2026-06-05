@@ -1,6 +1,8 @@
 output "frontend_url" {
-  value = "http://${aws_lb.public_alb.dns_name}"  
+  description = "ALB URL — LB Controller banayega after ArgoCD sync."
+  value       = "Run: kubectl get ingress -A"
 }
+
 output "ecr_repository_urls" {
   description = "ECR repositories for microservices images."
   value = {

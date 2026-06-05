@@ -56,7 +56,6 @@ jobs:
 
           services=(
             "frontend:front-end"
-            "gateway:services/gateway"
             "auth-service:services/auth"
             "doctor-service:services/doctors"
             "patient-service:services/patients"

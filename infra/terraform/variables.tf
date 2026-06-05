@@ -1,3 +1,4 @@
+# ── General ──────────────────────────────────────────
 variable "aws_region" {
   description = "AWS region."
   type        = string
@@ -5,32 +6,37 @@ variable "aws_region" {
 }
 
 variable "project_name" {
-  description = "Name prefix used for AWS resources."
+  description = "Name prefix used for all AWS resources."
   type        = string
   default     = "eks-healthcare"
 }
 
+# ── Network ──────────────────────────────────────────
 variable "vpc_cidr" {
-  type    = string
-  default = "10.40.0.0/16"
+  description = "VPC CIDR block."
+  type        = string
+  default     = "10.40.0.0/16"
 }
 
 variable "public_subnet_cidrs" {
-  type    = list(string)
-  default = ["10.40.1.0/24", "10.40.2.0/24"]
+  description = "Public subnet CIDRs — one per AZ."
+  type        = list(string)
+  default     = ["10.40.1.0/24", "10.40.2.0/24"]
 }
 
 variable "private_subnet_cidrs" {
-  type    = list(string)
-  default = ["10.40.11.0/24", "10.40.12.0/24"]
+  description = "Private subnet CIDRs — one per AZ."
+  type        = list(string)
+  default     = ["10.40.11.0/24", "10.40.12.0/24"]
 }
 
 variable "availability_zones" {
-  type    = list(string)
-  default = []
+  description = "AZs to use. Leave empty to auto-select 2."
+  type        = list(string)
+  default     = []
 }
 
-# EKS CLuster
+# ── EKS ──────────────────────────────────────────────
 variable "cluster_name" {
   description = "EKS cluster name."
   type        = string
@@ -40,31 +46,34 @@ variable "cluster_name" {
 variable "cluster_version" {
   description = "Kubernetes version."
   type        = string
-  default     = "1.30"
+  default     = "1.32"  # 1.30 support end — updated ✅
 }
 
 variable "node_instance_type" {
-  description = "EC2 instance type for EKS nodes."
+  description = "EC2 instance type for EKS worker nodes."
   type        = string
   default     = "t3.medium"
 }
 
 variable "node_desired" {
-  type    = number
-  default = 2
+  description = "Desired number of worker nodes."
+  type        = number
+  default     = 2
 }
 
 variable "node_min" {
-  type    = number
-  default = 2
+  description = "Minimum number of worker nodes."
+  type        = number
+  default     = 2
 }
 
 variable "node_max" {
-  type    = number
-  default = 4
+  description = "Maximum number of worker nodes — HPA ke liye."
+  type        = number
+  default     = 4
 }
 
-# ── Database (RDS PostgreSQL) ────────────────────────
+# ── RDS PostgreSQL ────────────────────────────────────
 variable "db_name" {
   description = "PostgreSQL database name."
   type        = string
@@ -78,7 +87,7 @@ variable "db_username" {
 }
 
 variable "db_password" {
-  description = "PostgreSQL admin password."
+  description = "PostgreSQL admin password — GitHub secret se aayega."
   type        = string
   sensitive   = true
 }
@@ -89,26 +98,19 @@ variable "db_instance_class" {
   default     = "db.t3.micro"
 }
 
-# ── ElastiCache Redis ────────────────────────────────
+# ── ElastiCache Redis ─────────────────────────────────
 variable "redis_node_type" {
   description = "ElastiCache node type."
   type        = string
   default     = "cache.t3.micro"
 }
 
-# ── ECR / Deploy ─────────────────────────────────────
-variable "image_tag" {
-  description = "Container image tag to deploy from ECR."
-  type        = string
-  default     = "v1"
-}
-
-# ── Tags 
+# ── Tags ──────────────────────────────────────────────
 variable "tags" {
-  type = map(string)
+  description = "Extra tags to merge with common_tags."
+  type        = map(string)
   default = {
     Environment = "demo"
     Owner       = "classroom"
-    # Project     = "HealthcareSystem"
   }
 }
