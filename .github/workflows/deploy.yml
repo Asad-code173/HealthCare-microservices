@@ -62,7 +62,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          image_tag="${{ github.event.inputs.image_tag || '' }}"  # ← fix
+          image_tag="${{ github.event.inputs.image_tag || '' }}" 
           [[ -z "${image_tag}" ]] && image_tag="${GITHUB_SHA::12}"
           echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
 
