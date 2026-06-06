@@ -46,10 +46,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ -n "${AWS_ROLE_TO_ASSUME}" ]]                       || { echo "AWS_ROLE_TO_ASSUME required";    exit 1; }
-          [[ -n "${{ secrets.TF_VAR_db_password }}" ]]          || { echo "TF_VAR_db_password required";    exit 1; }
-          [[ -n "${{ secrets.ACCESS_TOKEN_SECRET }}" ]]         || { echo "ACCESS_TOKEN_SECRET required";   exit 1; }
-          [[ -n "${{ secrets.REFRESH_TOKEN_SECRET }}" ]]        || { echo "REFRESH_TOKEN_SECRET required";  exit 1; }
+          [[ -n "${AWS_ROLE_TO_ASSUME}" ]]                || { echo "AWS_ROLE_TO_ASSUME required";   exit 1; }
+          [[ -n "${{ secrets.TF_VAR_db_password }}" ]]   || { echo "TF_VAR_db_password required";   exit 1; }
+          [[ -n "${{ secrets.ACCESS_TOKEN_SECRET }}" ]]  || { echo "ACCESS_TOKEN_SECRET required";  exit 1; }
+          [[ -n "${{ secrets.REFRESH_TOKEN_SECRET }}" ]] || { echo "REFRESH_TOKEN_SECRET required"; exit 1; }
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -62,7 +62,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          image_tag="${{ github.event.inputs.image_tag }}"
+          image_tag="${{ github.event.inputs.image_tag || '' }}"  # ← fix
           [[ -z "${image_tag}" ]] && image_tag="${GITHUB_SHA::12}"
           echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
 
