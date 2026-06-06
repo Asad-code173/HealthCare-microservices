@@ -56,7 +56,7 @@ secrets:
   dbHost: "eks-healthcare-postgres.co96qc0e2nvb.us-east-1.rds.amazonaws.com"
   dbName: "healthcare"
   dbUser: "postgres"
-  dbPassword: ""          # GitHub Secret se aayega
+  dbPassword: "ChangeMe123!"
 
   # Redis — deploy.yml Terraform output se fill karega
   redisHost: "eks-healthcare-redis.purfxd.0001.use1.cache.amazonaws.com"
@@ -64,11 +64,11 @@ secrets:
   corsOrigin: ""
 
 
-  accessTokenSecret: ""
+  accessTokenSecret: "mysecretaccesstoken123"
   accessTokenExpiry: "60m"
 
 
-  refreshTokenSecret: ""
+  refreshTokenSecret: "mysecretrefreshtoken123"
   refreshTokenExpiry: "7d"
 
 
