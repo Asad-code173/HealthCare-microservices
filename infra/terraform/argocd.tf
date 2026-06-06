@@ -1,3 +1,36 @@
+# ── ArgoCD Namespace ──────────────────────────────────
+resource "kubernetes_namespace" "argocd" {
+  metadata {
+    name = "argocd"
+  }
+
+  depends_on = [aws_eks_node_group.main]
+}
+
+# ── ArgoCD Helm Install ───────────────────────────────
+resource "helm_release" "argocd" {
+  name       = "argocd"
+  repository = "https://argoproj.github.io/argo-helm"
+  chart      = "argo-cd"
+  namespace  = kubernetes_namespace.argocd.metadata[0].name
+  version    = "6.7.3"
+
+  set {
+    name  = "server.insecure"
+    value = "true"
+  }
+
+  set {
+    name  = "server.service.type"
+    value = "ClusterIP"
+  }
+
+  depends_on = [
+    aws_eks_node_group.main,
+    kubernetes_namespace.argocd,
+  ]
+}
+
 # ── ArgoCD App of Apps ────────────────────────────────
 resource "helm_release" "argocd_app_of_apps" {
   name       = "app-of-apps"
