@@ -28,6 +28,7 @@ resource "helm_release" "argocd" {
   depends_on = [
     aws_eks_node_group.main,
     kubernetes_namespace.argocd,
+    helm_release.lb_controller,  # ← added
   ]
 }
 
