@@ -104,6 +104,12 @@ variable "redis_node_type" {
   type        = string
   default     = "cache.t3.micro"
 }
+variable "grafana_password" {
+  description = "Grafana admin password."
+  type        = string
+  sensitive   = true
+
+}
 
 # ── Tags ──────────────────────────────────────────────
 variable "tags" {

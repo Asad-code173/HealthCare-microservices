@@ -19,10 +19,5 @@ spec:
     automated:
       prune: true
       selfHeal: true
-    retry:            
-      limit: 3
-      backoff:
-        duration: 30s
-        maxDuration: 5m
     syncOptions:
       - CreateNamespace=true

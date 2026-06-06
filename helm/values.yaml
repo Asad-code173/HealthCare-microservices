@@ -10,11 +10,11 @@ services:
     replicas: 1
     image: eks-healthcare-frontend
 
-
   auth-service:
     port: 8001
     replicas: 1
     image: eks-healthcare-auth-service
+
   doctor-service:
     port: 8002
     replicas: 1
@@ -35,6 +35,7 @@ ingress:
   className: alb
   host: ""
   securityGroupId: ""
+
 resources:
   requests:
     cpu: "100m"
@@ -48,3 +49,28 @@ hpa:
   minReplicas: 1
   maxReplicas: 4
   cpuUtilization: 70
+
+# ── Secrets ──────────────────────────────────────────
+secrets:
+  # Database — deploy.yml Terraform output se fill karega
+  dbHost: ""
+  dbName: "healthcare"
+  dbUser: "postgres"
+  dbPassword: ""          # GitHub Secret se aayega
+
+  # Redis — deploy.yml Terraform output se fill karega
+  redisHost: ""
+
+  corsOrigin: ""
+
+
+  accessTokenSecret: ""
+  accessTokenExpiry: "60m"
+
+
+  refreshTokenSecret: ""
+  refreshTokenExpiry: "7d"
+
+
+  awsRegion: "us-east-1"
+  awsBucketName: "healthcaredatadoctors"

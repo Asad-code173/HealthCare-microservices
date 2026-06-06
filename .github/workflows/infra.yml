@@ -10,7 +10,7 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
@@ -46,6 +46,7 @@ jobs:
           [[ -z "${TF_STATE_BUCKET}" ]] && echo "TF_STATE_BUCKET required" && exit 1
           [[ -z "${AWS_ROLE_TO_ASSUME}" ]] && echo "AWS_ROLE_TO_ASSUME required" && exit 1
           [[ -z "${{ secrets.TF_VAR_db_password }}" ]] && echo "db_password secret required" && exit 1
+          [[ -z "${{ secrets.GRAFANA_PASSWORD }}" ]] && echo "GRAFANA_PASSWORD secret required" && exit 1
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -78,20 +79,38 @@ jobs:
       - name: Terraform plan
         run: |
           terraform plan \
-          -out=tfplan \
-          -var "aws_region=${AWS_REGION}" \
-          -var "project_name=${PROJECT_NAME}" \
-          -var "db_password=${{ secrets.TF_VAR_db_password }}"
+            -out=tfplan \
+            -var "aws_region=${AWS_REGION}" \
+            -var "project_name=${PROJECT_NAME}" \
+            -var "db_password=${{ secrets.TF_VAR_db_password }}" \
+            -var "grafana_password=${{ secrets.GRAFANA_PASSWORD }}"
         working-directory: infra/terraform
 
       - name: Terraform apply
+        run: terraform apply -auto-approve tfplan
+        working-directory: infra/terraform
+
+      - name: Save endpoints to Helm values
         run: |
-         terraform apply -auto-approve tfplan    
+          DB_HOST=$(terraform output -raw postgres_endpoint)
+          REDIS_HOST=$(terraform output -raw redis_endpoint)
+
+          sed -i "s|dbHost:.*|dbHost: \"${DB_HOST}\"|" ../../helm/values.yaml
+          sed -i "s|redisHost:.*|redisHost: \"${REDIS_HOST}\"|" ../../helm/values.yaml
+
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add ../../helm/values.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m "ci: update infra endpoints"
+            git push
+          fi
         working-directory: infra/terraform
 
       - name: Summarize
         run: |
           {
+            echo "## Infra apply complete"
             echo "- Region: ${AWS_REGION}"
             echo "- Project: ${PROJECT_NAME}"
           } >> "$GITHUB_STEP_SUMMARY"

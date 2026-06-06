@@ -20,6 +20,7 @@ spec:
       containers:
         - name: {{ $name }}
           image: "{{ include "healthcare.image" (dict "global" $.Values.global "image" $svc.image) }}"
+          imagePullPolicy: Always    # ✅ ECR se fresh image pull
           ports:
             - containerPort: {{ $svc.port }}
           resources:
@@ -29,8 +30,26 @@ spec:
             limits:
               cpu: {{ $.Values.resources.limits.cpu }}
               memory: {{ $.Values.resources.limits.memory }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ $svc.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ $svc.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 3
           envFrom:
             - secretRef:
                 name: healthcare-secrets
+            {{- if eq $name "auth-service" }}
+            - secretRef:
+                name: auth-secrets    # ✅ sirf auth service
+            {{- end }}
 ---
 {{- end }}

@@ -10,7 +10,9 @@ metadata:
     kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/security-groups: "{{ .Values.ingress.securityGroupId }}"
+    {{- if .Values.ingress.securityGroupId }}
+    alb.ingress.kubernetes.io/security-groups: {{ .Values.ingress.securityGroupId | quote }}
+    {{- end }}
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:
@@ -23,5 +25,32 @@ spec:
                 name: frontend
                 port:
                   number: {{ .Values.services.frontend.port }}
-
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: {{ index .Values.services "auth-service" "port" }}
+          - path: /api/patients
+            pathType: Prefix
+            backend:
+              service:
+                name: patient-service
+                port:
+                  number: {{ index .Values.services "patient-service" "port" }}
+          - path: /api/doctors
+            pathType: Prefix
+            backend:
+              service:
+                name: doctor-service
+                port:
+                  number: {{ index .Values.services "doctor-service" "port" }}
+          - path: /api/appointments
+            pathType: Prefix
+            backend:
+              service:
+                name: appointment-service
+                port:
+                  number: {{ index .Values.services "appointment-service" "port" }}
 {{- end }}
