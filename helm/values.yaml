@@ -53,13 +53,13 @@ hpa:
 # ── Secrets ──────────────────────────────────────────
 secrets:
   # Database — deploy.yml Terraform output se fill karega
-  dbHost: ""
+  dbHost: "eks-healthcare-postgres.co96qc0e2nvb.us-east-1.rds.amazonaws.com"
   dbName: "healthcare"
   dbUser: "postgres"
   dbPassword: ""          # GitHub Secret se aayega
 
   # Redis — deploy.yml Terraform output se fill karega
-  redisHost: ""
+  redisHost: "eks-healthcare-redis.purfxd.0001.use1.cache.amazonaws.com"
 
   corsOrigin: ""
 
