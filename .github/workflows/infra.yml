@@ -43,10 +43,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          [[ -z "${TF_STATE_BUCKET}" ]]                 && echo "TF_STATE_BUCKET required"    && exit 1
-          [[ -z "${AWS_ROLE_TO_ASSUME}" ]]              && echo "AWS_ROLE_TO_ASSUME required" && exit 1
-          [[ -z "${{ secrets.TF_VAR_db_password }}" ]] && echo "db_password secret required" && exit 1
-          [[ -z "${{ secrets.GRAFANA_PASSWORD }}" ]]   && echo "GRAFANA_PASSWORD secret required" && exit 1
+          [[ -n "${TF_STATE_BUCKET}" ]]                 || { echo "TF_STATE_BUCKET required";    exit 1; }
+          [[ -n "${AWS_ROLE_TO_ASSUME}" ]]              || { echo "AWS_ROLE_TO_ASSUME required"; exit 1; }
+          [[ -n "${{ secrets.TF_VAR_db_password }}" ]] || { echo "db_password secret required"; exit 1; }
+          [[ -n "${{ secrets.GRAFANA_PASSWORD }}" ]]   || { echo "GRAFANA_PASSWORD secret required"; exit 1; }
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
