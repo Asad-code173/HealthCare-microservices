@@ -120,6 +120,7 @@ jobs:
           IMAGE_TAG: ${{ steps.meta.outputs.image_tag }}
           ACCOUNT_ID: ${{ steps.aws.outputs.account_id }}
         run: |
+          git pull --rebase origin main
           sed -i "s|imageTag:.*|imageTag: \"${IMAGE_TAG}\"|" helm/values.yaml
           sed -i \
             "s|registry:.*|registry: \"${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com\"|" \
@@ -138,6 +139,7 @@ jobs:
           ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
           REFRESH_TOKEN_SECRET: ${{ secrets.REFRESH_TOKEN_SECRET }}
         run: |
+          git pull --rebase origin main
           sed -i "s|dbPassword:.*|dbPassword: \"${DB_PASSWORD}\"|" helm/values.yaml
           sed -i "s|accessTokenSecret:.*|accessTokenSecret: \"${ACCESS_TOKEN_SECRET}\"|" helm/values.yaml
           sed -i "s|refreshTokenSecret:.*|refreshTokenSecret: \"${REFRESH_TOKEN_SECRET}\"|" helm/values.yaml
