@@ -1,76 +1,30 @@
-# helm/values.yaml
-global:
-  registry: "942617679324.dkr.ecr.us-east-1.amazonaws.com"
-  imageTag: "6e08dff27be7"
-  namespace: healthcare
-
 services:
   frontend:
     port: 3000
     replicas: 1
     image: eks-healthcare-frontend
+    healthPath: "/"
 
   auth-service:
     port: 8001
     replicas: 1
     image: eks-healthcare-auth-service
+    healthPath: "/health"
 
   doctor-service:
     port: 8002
     replicas: 1
     image: eks-healthcare-doctor-service
+    healthPath: "/health"
 
   patient-service:
     port: 8003
     replicas: 1
     image: eks-healthcare-patient-service
+    healthPath: "/health"
 
   appointment-service:
     port: 8004
     replicas: 1
     image: eks-healthcare-appointment-service
-
-ingress:
-  enabled: true
-  className: alb
-  host: ""
-  securityGroupId: ""
-
-resources:
-  requests:
-    cpu: "100m"
-    memory: "256Mi"
-  limits:
-    cpu: "500m"
-    memory: "1Gi"
-
-hpa:
-  enabled: true
-  minReplicas: 1
-  maxReplicas: 4
-  cpuUtilization: 70
-
-# ── Secrets ──────────────────────────────────────────
-secrets:
-  # Database — deploy.yml Terraform output se fill karega
-  dbHost: "eks-healthcare-postgres.co96qc0e2nvb.us-east-1.rds.amazonaws.com"
-  dbName: "healthcare"
-  dbUser: "postgres"
-  dbPassword: "ChangeMe123!"
-
-  # Redis — deploy.yml Terraform output se fill karega
-  redisHost: "eks-healthcare-redis.purfxd.0001.use1.cache.amazonaws.com"
-
-  corsOrigin: ""
-
-
-  accessTokenSecret: "mysecretaccesstoken123"
-  accessTokenExpiry: "60m"
-
-
-  refreshTokenSecret: "mysecretrefreshtoken123"
-  refreshTokenExpiry: "7d"
-
-
-  awsRegion: "us-east-1"
-  awsBucketName: "healthcaredatadoctors"
+    healthPath: "/health"
