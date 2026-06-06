@@ -20,7 +20,7 @@ spec:
       containers:
         - name: {{ $name }}
           image: "{{ include "healthcare.image" (dict "global" $.Values.global "image" $svc.image) }}"
-          imagePullPolicy: Always    # ✅ ECR se fresh image pull
+          imagePullPolicy: Always
           ports:
             - containerPort: {{ $svc.port }}
           resources:
@@ -49,7 +49,10 @@ spec:
                 name: healthcare-secrets
             {{- if eq $name "auth-service" }}
             - secretRef:
-                name: auth-secrets    # ✅ sirf auth service
+                name: auth-secrets
             {{- end }}
+          env:
+            - name: PORT                  # ✅ har service ko apna port milega
+              value: {{ $svc.port | quote }}
 ---
 {{- end }}
