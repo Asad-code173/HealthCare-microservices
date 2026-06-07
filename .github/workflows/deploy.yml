@@ -159,7 +159,6 @@ jobs:
           helm upgrade --install healthcare ./helm \
             --namespace healthcare \
             --values ./helm/values.yaml \
-            --atomic \
             --timeout 8m
 
       - name: Get frontend URL
