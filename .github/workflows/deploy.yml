@@ -93,6 +93,7 @@ jobs:
             "doctor-service:services/doctors"
             "patient-service:services/patients"
             "appointment-service:services/appointments"
+            "gateway-service:services/gateway"
           )
           for entry in "${services[@]}"; do
             name="${entry%%:*}"
