@@ -21,10 +21,6 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
-# Schema copy karo migrations ke liye
-COPY --from=builder /app/prisma ./prisma
-
 EXPOSE 8001
 
-# Pehle migrate karo phir server start karo
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/index.js"]
+CMD ["node", "dist/src/index.js"]
