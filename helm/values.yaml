@@ -35,6 +35,12 @@ services:
     image: eks-healthcare-appointment-service
     healthPath: "/health"
 
+  gateway-service:
+    port: 8080
+    replicas: 1
+    image: eks-healthcare-gateway-service
+    healthPath: "/health"
+
 ingress:
   enabled: true
   className: alb

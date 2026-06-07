@@ -18,6 +18,13 @@ spec:
   rules:
     - http:
         paths:
+          - path: /api/v1
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: {{ index .Values.services "gateway-service" "port" }}
           - path: /
             pathType: Prefix
             backend:
@@ -25,32 +32,4 @@ spec:
                 name: frontend
                 port:
                   number: {{ .Values.services.frontend.port }}
-          - path: /api/auth
-            pathType: Prefix
-            backend:
-              service:
-                name: auth-service
-                port:
-                  number: {{ index .Values.services "auth-service" "port" }}
-          - path: /api/patients
-            pathType: Prefix
-            backend:
-              service:
-                name: patient-service
-                port:
-                  number: {{ index .Values.services "patient-service" "port" }}
-          - path: /api/doctors
-            pathType: Prefix
-            backend:
-              service:
-                name: doctor-service
-                port:
-                  number: {{ index .Values.services "doctor-service" "port" }}
-          - path: /api/appointments
-            pathType: Prefix
-            backend:
-              service:
-                name: appointment-service
-                port:
-                  number: {{ index .Values.services "appointment-service" "port" }}
 {{- end }}
