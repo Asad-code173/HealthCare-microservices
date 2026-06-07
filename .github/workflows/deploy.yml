@@ -172,7 +172,7 @@ jobs:
           echo "⏳ Waiting for auth-service..."
           kubectl rollout status deployment/auth-service -n healthcare --timeout=3m
           kubectl exec deployment/auth-service -n healthcare -- \
-            sh -c "DATABASE_URL='postgresql://postgres:${DB_PASSWORD}@eks-healthcare-postgres.co96qc0e2nvb.us-east-1.rds.amazonaws.com:5432/healthcare' npx prisma migrate deploy"
+            sh -c "DATABASE_URL='postgresql://postgres:${DB_PASSWORD}@eks-healthcare-postgres.co96qc0e2nvb.us-east-1.rds.amazonaws.com:5432/healthcare' npx prisma migrate deploy --config=/app/prisma.config.ts"
 
       - name: Get frontend URL
         run: |
