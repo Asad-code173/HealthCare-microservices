@@ -174,7 +174,7 @@ jobs:
               } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            echo "Attempt ${i}/20 — waiting 30s..."
+            echo "Attempt ${i}/10 — waiting 10s..."
             sleep 30
           done
           {
