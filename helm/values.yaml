@@ -1,17 +1,15 @@
-
 # helm/values.yaml
 global:
   registry: "942617679324.dkr.ecr.us-east-1.amazonaws.com"
   imageTag: "61720a22d036"
   namespace: healthcare
 
-
 services:
   frontend:
     port: 3000
     replicas: 1
     image: eks-healthcare-frontend
-    healthPath: "/health"
+    healthPath: "/api/health"
 
   auth-service:
     port: 8001
@@ -36,3 +34,37 @@ services:
     replicas: 1
     image: eks-healthcare-appointment-service
     healthPath: "/health"
+
+ingress:
+  enabled: true
+  className: alb
+  host: ""
+  securityGroupId: ""
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "1Gi"
+
+hpa:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 4
+  cpuUtilization: 70
+
+secrets:
+  dbHost: "eks-healthcare-postgres.co96qc0e2nvb.us-east-1.rds.amazonaws.com"
+  dbName: "healthcare"
+  dbUser: "postgres"
+  dbPassword: ""
+  redisHost: "eks-healthcare-redis.purfxd.0001.use1.cache.amazonaws.com"
+  corsOrigin: ""
+  accessTokenSecret: ""
+  accessTokenExpiry: "60m"
+  refreshTokenSecret: ""
+  refreshTokenExpiry: "7d"
+  awsRegion: "us-east-1"
+  awsBucketName: "healthcaredatadoctors"
