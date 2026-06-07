@@ -1,18 +1,17 @@
-<<<<<<< HEAD
-=======
+
 # helm/values.yaml
 global:
   registry: "942617679324.dkr.ecr.us-east-1.amazonaws.com"
   imageTag: "97670449a559"
   namespace: healthcare
 
->>>>>>> cbbfff4f05a4836abf795d7f7e6e4d25a148ca71
+
 services:
   frontend:
     port: 3000
     replicas: 1
     image: eks-healthcare-frontend
-    healthPath: "/"
+    healthPath: "/health"
 
   auth-service:
     port: 8001
