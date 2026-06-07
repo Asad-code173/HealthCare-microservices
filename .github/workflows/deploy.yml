@@ -151,6 +151,17 @@ jobs:
             git push
           fi
 
+      - name: Deploy with Helm
+        run: |
+          aws eks update-kubeconfig \
+            --region "${AWS_REGION}" \
+            --name "${CLUSTER_NAME}"
+          helm upgrade --install healthcare ./helm \
+            --namespace healthcare \
+            --values ./helm/values.yaml \
+            --atomic \
+            --timeout 8m
+
       - name: Get frontend URL
         run: |
           aws eks update-kubeconfig \
@@ -174,7 +185,7 @@ jobs:
               } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            echo "Attempt ${i}/10 — waiting 10s..."
+            echo "Attempt ${i}/20 — waiting 30s..."
             sleep 30
           done
           {
