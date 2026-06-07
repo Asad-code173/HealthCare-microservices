@@ -1,7 +1,7 @@
 # helm/values.yaml
 global:
   registry: "942617679324.dkr.ecr.us-east-1.amazonaws.com"
-  imageTag: "1ba3c18a61c7"
+  imageTag: "9dd170e68248"
   namespace: healthcare
 
 services:
