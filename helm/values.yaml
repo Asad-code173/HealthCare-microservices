@@ -66,6 +66,7 @@ secrets:
   dbName: "healthcare"
   dbUser: "postgres"
   dbPassword: "ChangeMe123!"
+  databaseUrl: "postgresql://postgres:ChangeMe123!@eks-healthcare-postgres....rds.amazonaws.com:5432/healthcare"
   redisHost: "eks-healthcare-redis.purfxd.0001.use1.cache.amazonaws.com"
   corsOrigin: "http://k8s-healthca-healthca-c725895a38-260980003.us-east-1.elb.amazonaws.com"
   accessTokenSecret: "mysecretaccesstoken123"
