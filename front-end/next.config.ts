@@ -6,7 +6,7 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "healthcaredatadoctors.s3.ap-south-1.amazonaws.com",
+        hostname: "*.amazonaws.com",
       },
     ],
   },
