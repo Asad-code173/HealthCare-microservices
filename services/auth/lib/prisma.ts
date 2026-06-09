@@ -5,7 +5,10 @@ import pg from "pg";
 
 const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL!,
-    options: "-c search_path=public"
+    options: "-c search_path=public",
+    ssl: {
+        rejectUnauthorized: false
+    }
 });
 
 const adapter = new PrismaPg(pool);
