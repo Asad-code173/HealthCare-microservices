@@ -19,10 +19,13 @@ export const generatePresignedUrl = async (fileType: string) => {
         Bucket: process.env.AWS_BUCKET_NAME!,
         Key: fileName,
         ContentType: fileType,
+        ChecksumAlgorithm: undefined
     });
 
-    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 }); // 60 seconds
-
+    const presignedUrl = await getSignedUrl(s3Client, command, { 
+    expiresIn: 300,
+    unhoistableHeaders: new Set(["x-amz-checksum-crc32"]), // ← yeh add karo
+});
     const avatarUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
 
     return { presignedUrl, avatarUrl };
