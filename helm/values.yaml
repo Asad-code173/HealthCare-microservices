@@ -74,7 +74,7 @@ secrets:
   refreshTokenSecret: "mysecretrefreshtoken123"
   refreshTokenExpiry: "7d"
   awsRegion: "us-east-1"
-  awsBucketName: "healthcaredatadoctors"
+  awsBucketName: "healthcaredatadoctors-prod"
   awsAccessKeyId: "placeholder"     
   awsSecretAccessKey: "placeholder"
   apiBaseUrl: "http://k8s-healthca-healthca-c725895a38-260980003.us-east-1.elb.amazonaws.com"
