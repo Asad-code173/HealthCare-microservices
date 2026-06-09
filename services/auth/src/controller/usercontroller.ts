@@ -80,7 +80,7 @@ const registerUser = asyncHandler(async (req: Request<{}, {}, RegisterUserBody>,
     });
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user.id);
 
-    const options = { httpOnly: true, secure: true, sameSite: "none" as const };
+    const options = { httpOnly: true, secure: false, sameSite: "lax" as const };
 
     return res
         .status(201)
@@ -114,7 +114,8 @@ const loginUser = asyncHandler(async (req: Request<{}, {}, LoginUserBody>, res: 
         select: { id: true, username: true, email: true, role: true, createdAt: true }
     });
 
-    const options = { httpOnly: true, secure: true, sameSite: "none" as const };
+   
+    const options = { httpOnly: true, secure: false, sameSite: "lax" as const };
     console.log("Generated Access Token:", accessToken);
     console.log("Setting accessToken cookie");
 
@@ -137,7 +138,8 @@ const logoutUser = asyncHandler(async (req: Request, res: Response) => {
         data: { refreshToken: null }
     });
 
-    const options = { httpOnly: true, secure: true, sameSite: "none" as const };
+    
+    const options = { httpOnly: true, secure: false, sameSite: "lax" as const };
 
     return res
         .status(200)
@@ -166,7 +168,8 @@ const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
 
         const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user.id);
 
-        const options = { httpOnly: true, secure: true, sameSite: "none" as const };
+        
+        const options = { httpOnly: true, secure: false, sameSite: "lax" as const };
 
         return res
             .status(200)
