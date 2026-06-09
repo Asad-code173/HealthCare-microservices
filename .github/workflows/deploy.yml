@@ -139,11 +139,15 @@ jobs:
           DB_PASSWORD: ${{ secrets.TF_VAR_db_password }}
           ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
           REFRESH_TOKEN_SECRET: ${{ secrets.REFRESH_TOKEN_SECRET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
           git pull --rebase origin main
           sed -i "s|dbPassword:.*|dbPassword: \"${DB_PASSWORD}\"|" helm/values.yaml
           sed -i "s|accessTokenSecret:.*|accessTokenSecret: \"${ACCESS_TOKEN_SECRET}\"|" helm/values.yaml
           sed -i "s|refreshTokenSecret:.*|refreshTokenSecret: \"${REFRESH_TOKEN_SECRET}\"|" helm/values.yaml
+          sed -i "s|awsAccessKeyId:.*|awsAccessKeyId: \"${AWS_ACCESS_KEY_ID}\"|" helm/values.yaml
+          sed -i "s|awsSecretAccessKey:.*|awsSecretAccessKey: \"${AWS_SECRET_ACCESS_KEY}\"|" helm/values.yaml
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
           git add helm/values.yaml
