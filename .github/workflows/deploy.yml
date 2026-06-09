@@ -162,17 +162,7 @@ jobs:
             --values ./helm/values.yaml \
             --timeout 8m
 
-      - name: Run Database Migrations
-        env:
-          DB_PASSWORD: ${{ secrets.TF_VAR_db_password }}
-        run: |
-          aws eks update-kubeconfig \
-            --region "${AWS_REGION}" \
-            --name "${CLUSTER_NAME}"
-          echo "⏳ Waiting for auth-service..."
-          kubectl rollout status deployment/auth-service -n healthcare --timeout=3m
-          kubectl exec deployment/auth-service -n healthcare -- \
-            sh -c "DATABASE_URL='postgresql://postgres:${DB_PASSWORD}@eks-healthcare-postgres.co96qc0e2nvb.us-east-1.rds.amazonaws.com:5432/healthcare' npx prisma migrate deploy --config=/app/prisma.config.ts"
+      
 
       - name: Get frontend URL
         run: |
