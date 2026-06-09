@@ -146,8 +146,6 @@ jobs:
           sed -i "s|dbPassword:.*|dbPassword: \"${DB_PASSWORD}\"|" helm/values.yaml
           sed -i "s|accessTokenSecret:.*|accessTokenSecret: \"${ACCESS_TOKEN_SECRET}\"|" helm/values.yaml
           sed -i "s|refreshTokenSecret:.*|refreshTokenSecret: \"${REFRESH_TOKEN_SECRET}\"|" helm/values.yaml
-          sed -i "s|awsAccessKeyId:.*|awsAccessKeyId: \"${AWS_ACCESS_KEY_ID}\"|" helm/values.yaml
-          sed -i "s|awsSecretAccessKey:.*|awsSecretAccessKey: \"${AWS_SECRET_ACCESS_KEY}\"|" helm/values.yaml
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
           git add helm/values.yaml
@@ -165,6 +163,19 @@ jobs:
             --namespace healthcare \
             --values ./helm/values.yaml \
             --timeout 8m
+      - name: Inject AWS credentials directly
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          aws eks update-kubeconfig \
+            --region "${AWS_REGION}" \
+            --name "${CLUSTER_NAME}"
+          kubectl create secret generic aws-credentials \
+            --from-literal=AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+            --from-literal=AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+            --namespace healthcare \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       
 

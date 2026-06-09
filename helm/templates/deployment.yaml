@@ -51,6 +51,10 @@ spec:
             - secretRef:
                 name: auth-secrets
             {{- end }}
+            {{- if eq $name "doctor-service" }}
+            - secretRef:
+                name: aws-credentials
+            {{- end }}
           env:
             - name: PORT
               value: {{ $svc.port | quote }}
