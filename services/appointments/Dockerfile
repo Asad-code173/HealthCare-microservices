@@ -25,4 +25,5 @@ COPY --from=builder /app/prisma.config.* ./
 
 EXPOSE 8004
 
-CMD ["node", "dist/src/index.js"]
+# CMD ["node", "dist/src/index.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/index.js"]
