@@ -193,8 +193,8 @@ jobs:
               } >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            echo "Attempt ${i}/20 — waiting 30s..."
-            sleep 30
+            echo "Attempt ${i}/5 — waiting 20s..."
+            sleep 20
           done
           {
             echo "## Deploy complete"
