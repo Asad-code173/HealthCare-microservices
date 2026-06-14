@@ -75,6 +75,9 @@ app.get("/health", (_req: Request, res: Response) => {
     services: serviceUrls,
   });
 });
+app.get("/", (_req: Request, res: Response) => {
+  res.status(200).json({ status: "ok" });
+});
 
 
 // signup
