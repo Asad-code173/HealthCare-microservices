@@ -19,14 +19,14 @@ permissions:
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
-  PROJECT_NAME: ${{ vars.PROJECT_NAME || 'eks-healthcare' }} 
+  PROJECT_NAME: ${{ vars.PROJECT_NAME || 'eks-healthcare' }}
   TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
-  TF_STATE_KEY: ${{ vars.TF_STATE_KEY || 'healthcare/eks/terraform.tfstate' }}  
+  TF_STATE_KEY: ${{ vars.TF_STATE_KEY || 'healthcare/eks/terraform.tfstate' }}
   AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_TO_ASSUME }}
   TF_IN_AUTOMATION: true
 
 concurrency:
-  group: eks-healthcare-destroy  
+  group: eks-healthcare-destroy
   cancel-in-progress: false
 
 jobs:
@@ -64,9 +64,9 @@ jobs:
             exit 1
           fi
 
-        
-          if [[ -z "${{ secrets.TF_VAR_grafana_password }}" ]]; then
-            echo "TF_VAR_grafana_password GitHub secret is required."
+          # ✅ UPDATED: GRAFANA_PASSWORD secret name
+          if [[ -z "${{ secrets.GRAFANA_PASSWORD }}" ]]; then
+            echo "GRAFANA_PASSWORD GitHub secret is required."
             exit 1
           fi
 
@@ -86,7 +86,6 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
 
-     
       - name: Force remove Terraform state lock if exists
         shell: bash
         run: |
@@ -95,11 +94,11 @@ jobs:
           LOCK_FILE="s3://${TF_STATE_BUCKET}/${TF_STATE_KEY}.tflock"
 
           if aws s3 ls "${LOCK_FILE}" 2>/dev/null; then
-            echo " Stale lock found. Removing..."
+            echo "Stale lock found. Removing..."
             aws s3 rm "${LOCK_FILE}"
-            echo " Lock removed successfully."
+            echo "Lock removed successfully."
           else
-            echo " No lock found. Proceeding..."
+            echo "No lock found. Proceeding..."
           fi
 
       - name: Confirm Terraform state bucket exists
@@ -129,24 +128,22 @@ jobs:
         run: terraform init -input=false -backend-config=backend.hcl
         working-directory: infra/terraform
 
-      - name: Destroy the ECS demo stack
+      - name: Destroy the EKS stack
         run: |
           terraform destroy -auto-approve \
             -lock=false \
             -var "aws_region=${AWS_REGION}" \
             -var "project_name=${PROJECT_NAME}" \
             -var "db_password=${{ secrets.TF_VAR_db_password }}" \
-            -var "grafana_password=${{ secrets.TF_VAR_grafana_password }}"
-           
-          
+            -var "grafana_password=${{ secrets.GRAFANA_PASSWORD }}"
+            # ✅ UPDATED: secrets.GRAFANA_PASSWORD
         working-directory: infra/terraform
 
-      - name: Remove known ECR repositories for this demo project
+      - name: Remove known ECR repositories for this project
         shell: bash
         run: |
           set -euo pipefail
 
-          # : ECS services list ko EKS project ke hisaab se update kiya
           services=(frontend backend api)
 
           for service in "${services[@]}"; do
