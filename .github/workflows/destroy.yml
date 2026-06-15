@@ -64,7 +64,6 @@ jobs:
             exit 1
           fi
 
-          # ✅ UPDATED: GRAFANA_PASSWORD secret name
           if [[ -z "${{ secrets.GRAFANA_PASSWORD }}" ]]; then
             echo "GRAFANA_PASSWORD GitHub secret is required."
             exit 1
@@ -112,6 +111,96 @@ jobs:
             exit 1
           fi
 
+      # ✅ FIX 1: RDS Deletion Protection Disable
+      - name: Pre-destroy - Disable RDS Deletion Protection
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DB_INSTANCE="${PROJECT_NAME}-postgres"
+
+          if aws rds describe-db-instances \
+            --db-instance-identifier "${DB_INSTANCE}" \
+            --region "${AWS_REGION}" >/dev/null 2>&1; then
+
+            echo "Disabling deletion protection on: ${DB_INSTANCE}"
+            aws rds modify-db-instance \
+              --db-instance-identifier "${DB_INSTANCE}" \
+              --no-deletion-protection \
+              --region "${AWS_REGION}"
+
+            echo "Waiting for RDS modification (30s)..."
+            sleep 30
+            echo "RDS protection disabled!"
+          else
+            echo "RDS instance not found, skipping..."
+          fi
+
+      # ✅ FIX 2: NAT Gateway + Elastic IPs Remove
+      - name: Pre-destroy - Remove NAT Gateways and Elastic IPs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "=== Deleting NAT Gateways ==="
+          for nat_id in $(aws ec2 describe-nat-gateways \
+            --region "${AWS_REGION}" \
+            --filter "Name=state,Values=available" \
+            --query 'NatGateways[].NatGatewayId' \
+            --output text); do
+            echo "Deleting NAT Gateway: $nat_id"
+            aws ec2 delete-nat-gateway \
+              --nat-gateway-id "$nat_id" \
+              --region "${AWS_REGION}"
+          done
+
+          echo "=== Waiting for NAT Gateways to delete (90s) ==="
+          sleep 90
+
+          echo "=== Releasing Elastic IPs ==="
+          for alloc_id in $(aws ec2 describe-addresses \
+            --region "${AWS_REGION}" \
+            --query 'Addresses[?AssociationId==null].AllocationId' \
+            --output text); do
+            echo "Releasing Elastic IP: $alloc_id"
+            aws ec2 release-address \
+              --allocation-id "$alloc_id" \
+              --region "${AWS_REGION}"
+          done
+
+          echo "=== NAT + EIP cleanup done ==="
+
+      # ✅ FIX 3: ArgoCD CRDs Remove
+      - name: Pre-destroy - Remove ArgoCD CRDs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "=== Configuring kubectl ==="
+          aws eks update-kubeconfig \
+            --region "${AWS_REGION}" \
+            --name "${PROJECT_NAME}"
+
+          echo "=== Deleting ArgoCD resources ==="
+          kubectl delete applications --all \
+            -n argocd --ignore-not-found=true || true
+          kubectl delete applicationsets --all \
+            -n argocd --ignore-not-found=true || true
+
+          echo "=== Uninstalling ArgoCD Helm ==="
+          helm uninstall argocd \
+            -n argocd --timeout 120s || true
+
+          echo "=== Deleting ArgoCD CRDs ==="
+          kubectl delete crd applications.argoproj.io \
+            --ignore-not-found=true || true
+          kubectl delete crd applicationsets.argoproj.io \
+            --ignore-not-found=true || true
+          kubectl delete crd appprojects.argoproj.io \
+            --ignore-not-found=true || true
+
+          echo "=== ArgoCD cleanup done ==="
+
       - name: Render backend config for Terraform
         shell: bash
         run: |
@@ -136,10 +225,9 @@ jobs:
             -var "project_name=${PROJECT_NAME}" \
             -var "db_password=${{ secrets.TF_VAR_db_password }}" \
             -var "grafana_password=${{ secrets.GRAFANA_PASSWORD }}"
-            # ✅ UPDATED: secrets.GRAFANA_PASSWORD
         working-directory: infra/terraform
 
-      - name: Remove known ECR repositories for this project
+      - name: Remove known ECR repositories
         shell: bash
         run: |
           set -euo pipefail
