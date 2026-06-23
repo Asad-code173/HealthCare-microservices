@@ -75,6 +75,12 @@ jobs:
       - name: Terraform init
         run: terraform init -input=false -backend-config=backend.hcl
         working-directory: infra/terraform
+        
+      - name: Import existing IAM resources
+        working-directory: infra/terraform
+        run: |
+          terraform import aws_iam_role.eks_cluster eks-healthcare-eks-cluster-role || true
+          terraform import aws_iam_role.eks_nodes eks-healthcare-eks-nodes-role || true
 
       - name: Terraform plan
         env:
